@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulador C++ / WebAssembly</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; background: #f0f2f5; }
+        .panel { background: white; padding: 20px; border-radius: 8px; width: 350px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input[type="range"] { width: 100%; }
+        .display { font-size: 1.2em; font-family: monospace; background: #222; color: #0f0; padding: 10px; margin-top: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>Controle da Fonte</h2>
+    <label>Tensão: <span id="valVoltage">12</span>V</label>
+    <input type="range" id="sliderVoltage" min="0" max="24" step="0.5" value="12" disabled>
+    
+    <div class="display">
+        Potência: <span id="valPower">0.00</span> W<br>
+        Corrente: <span id="valCurrent">0.00</span> A
+    </div>
+    <p id="status">Carregando motor de simulação (C++)...</p>
+</div>
+
+<script src="simulator.js"></script>
+<script>
+    let myCircuit;
+
+    // O objeto Module é criado pelo simulator.js. Precisamos esperar ele inicializar.
+    Module.onRuntimeInitialized = function() {
+        document.getElementById('status').innerText = "Motor C++ pronto!";
+        document.getElementById('sliderVoltage').disabled = false;
+
+        // Instanciamos as classes C++ diretamente no JavaScript!
+        myCircuit = new Module.Circuit(12.0, 5.0);
+        
+        const lamp = new Module.Device("Lâmpada", 24.0);
+        const motor = new Module.Device("Motor", 12.0);
+        
+        myCircuit.addDevice(lamp);
+        myCircuit.addDevice(motor);
+
+        updateUI();
+    };
+
+    function updateUI() {
+        if (!myCircuit) return;
+
+        const voltage = parseFloat(document.getElementById('sliderVoltage').value);
+        document.getElementById('valVoltage').innerText = voltage.toFixed(1);
+
+        // Chamamos os métodos C++ passando o novo valor
+        myCircuit.setVoltage(voltage);
+        
+        // Lemos os resultados processados no C++
+        document.getElementById('valPower').innerText = myCircuit.getTotalPower().toFixed(2);
+        document.getElementById('valCurrent').innerText = myCircuit.getTotalCurrent().toFixed(2);
+    }
+
+    document.getElementById('sliderVoltage').addEventListener('input', updateUI);
+</script>
+
+</body>
+</html>
